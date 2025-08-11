@@ -1,0 +1,528 @@
+-- Sugar UI Library v1.0
+local Sugar = {}
+
+-- Main UI setup
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
+
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "SugarUI"
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+ScreenGui.Parent = game:GetService("CoreGui")
+
+local mainFrame = Instance.new("Frame")
+mainFrame.Name = "MainFrame"
+mainFrame.Size = UDim2.new(0, 300, 0, 35)
+mainFrame.Position = UDim2.new(0.5, -150, 0, 10)
+mainFrame.AnchorPoint = Vector2.new(0.5, 0)
+mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+mainFrame.BorderSizePixel = 0
+mainFrame.ClipsDescendants = true
+mainFrame.Active = true
+mainFrame.Draggable = true
+mainFrame.Selectable = true
+mainFrame.Parent = ScreenGui
+
+local UICorner = Instance.new("UICorner")
+UICorner.CornerRadius = UDim.new(0, 6)
+UICorner.Parent = mainFrame
+
+local header = Instance.new("Frame")
+header.Name = "Header"
+header.Size = UDim2.new(1, 0, 0, 35)
+header.Position = UDim2.new(0, 0, 0, 0)
+header.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
+header.BorderSizePixel = 0
+header.Parent = mainFrame
+
+local headerCorner = Instance.new("UICorner")
+headerCorner.CornerRadius = UDim.new(0, 6)
+headerCorner.Parent = header
+
+local title = Instance.new("TextLabel")
+title.Name = "Title"
+title.Size = UDim2.new(0.7, 0, 1, 0)
+title.Position = UDim2.new(0.05, 0, 0, 0)
+title.BackgroundTransparency = 1
+title.Text = "Sugar UI"
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.TextSize = 16
+title.Font = Enum.Font.GothamSemibold
+title.TextXAlignment = Enum.TextXAlignment.Left
+title.Parent = header
+
+local toggleButton = Instance.new("TextButton")
+toggleButton.Name = "ToggleButton"
+toggleButton.Size = UDim2.new(0, 80, 0, 25)
+toggleButton.Position = UDim2.new(1, -85, 0.5, -12.5)
+toggleButton.BackgroundColor3 = Color3.fromRGB(50, 50, 55)
+toggleButton.BorderSizePixel = 0
+toggleButton.Text = "Close"
+toggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+toggleButton.TextSize = 14
+toggleButton.Font = Enum.Font.Gotham
+toggleButton.Parent = header
+
+local toggleCorner = Instance.new("UICorner")
+toggleCorner.CornerRadius = UDim.new(0, 4)
+toggleCorner.Parent = toggleButton
+
+local contentFrame = Instance.new("Frame")
+contentFrame.Name = "Content"
+contentFrame.Size = UDim2.new(1, -10, 1, -45)
+contentFrame.Position = UDim2.new(0, 5, 0, 40)
+contentFrame.BackgroundTransparency = 1
+contentFrame.Parent = mainFrame
+
+local contentLayout = Instance.new("UIListLayout")
+contentLayout.Name = "ContentLayout"
+contentLayout.Padding = UDim.new(0, 5)
+contentLayout.SortOrder = Enum.SortOrder.LayoutOrder
+contentLayout.Parent = contentFrame
+
+-- State variables
+local isOpen = true
+local targetSize = UDim2.new(0, 300, 0, 300)
+local closedSize = UDim2.new(0, 300, 0, 35)
+
+-- Toggle function
+local function toggleUI()
+    isOpen = not isOpen
+    toggleButton.Text = isOpen and "Close" or "Open"
+    
+    local tweenInfo = TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut)
+    local tween = TweenService:Create(
+        mainFrame,
+        tweenInfo,
+        {Size = isOpen and targetSize or closedSize}
+    )
+    tween:Play()
+end
+
+toggleButton.MouseButton1Click:Connect(toggleUI)
+
+-- Drag functionality
+local dragStart, frameStart
+
+header.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragStart = input.Position
+        frameStart = mainFrame.Position
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragStart = nil
+            end
+        end)
+    end
+end)
+
+header.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement and dragStart then
+        local delta = input.Position - dragStart
+        mainFrame.Position = UDim2.new(frameStart.X.Scale, frameStart.X.Offset + delta.X, frameStart.Y.Scale, frameStart.Y.Offset + delta.Y)
+    end
+end)
+
+-- Sugar UI Library Functions
+function Sugar:Window(name)
+    title.Text = name or "Sugar UI"
+    return self
+end
+
+function Sugar:Button(text, callback)
+    local button = Instance.new("TextButton")
+    button.Name = "Button_"..text
+    button.Size = UDim2.new(1, 0, 0, 30)
+    button.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
+    button.BorderSizePixel = 0
+    button.Text = text
+    button.TextColor3 = Color3.fromRGB(255, 255, 255)
+    button.TextSize = 14
+    button.Font = Enum.Font.Gotham
+    button.Parent = contentFrame
+    
+    local buttonCorner = Instance.new("UICorner")
+    buttonCorner.CornerRadius = UDim.new(0, 4)
+    buttonCorner.Parent = button
+    
+    button.MouseButton1Click:Connect(function()
+        pcall(callback)
+    end)
+    
+    return button
+end
+
+function Sugar:Toggle(text, default, callback)
+    local toggleFrame = Instance.new("Frame")
+    toggleFrame.Name = "Toggle_"..text
+    toggleFrame.Size = UDim2.new(1, 0, 0, 30)
+    toggleFrame.BackgroundTransparency = 1
+    toggleFrame.Parent = contentFrame
+    
+    local toggleLabel = Instance.new("TextLabel")
+    toggleLabel.Name = "Label"
+    toggleLabel.Size = UDim2.new(0.7, 0, 1, 0)
+    toggleLabel.Position = UDim2.new(0, 0, 0, 0)
+    toggleLabel.BackgroundTransparency = 1
+    toggleLabel.Text = text
+    toggleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    toggleLabel.TextSize = 14
+    toggleLabel.Font = Enum.Font.Gotham
+    toggleLabel.TextXAlignment = Enum.TextXAlignment.Left
+    toggleLabel.Parent = toggleFrame
+    
+    local toggleButton = Instance.new("TextButton")
+    toggleButton.Name = "Toggle"
+    toggleButton.Size = UDim2.new(0, 50, 0, 25)
+    toggleButton.Position = UDim2.new(1, -50, 0.5, -12.5)
+    toggleButton.BackgroundColor3 = default and Color3.fromRGB(0, 170, 255) or Color3.fromRGB(70, 70, 75)
+    toggleButton.BorderSizePixel = 0
+    toggleButton.Text = ""
+    toggleButton.Parent = toggleFrame
+    
+    local toggleCorner = Instance.new("UICorner")
+    toggleCorner.CornerRadius = UDim.new(0, 4)
+    toggleCorner.Parent = toggleButton
+    
+    local toggleState = default or false
+    
+    toggleButton.MouseButton1Click:Connect(function()
+        toggleState = not toggleState
+        toggleButton.BackgroundColor3 = toggleState and Color3.fromRGB(0, 170, 255) or Color3.fromRGB(70, 70, 75)
+        pcall(callback, toggleState)
+    end)
+    
+    return {
+        Set = function(self, value)
+            toggleState = value
+            toggleButton.BackgroundColor3 = toggleState and Color3.fromRGB(0, 170, 255) or Color3.fromRGB(70, 70, 75)
+            pcall(callback, toggleState)
+        end,
+        Get = function(self)
+            return toggleState
+        end
+    }
+end
+
+function Sugar:Slider(text, min, max, default, callback)
+    local sliderFrame = Instance.new("Frame")
+    sliderFrame.Name = "Slider_"..text
+    sliderFrame.Size = UDim2.new(1, 0, 0, 50)
+    sliderFrame.BackgroundTransparency = 1
+    sliderFrame.Parent = contentFrame
+    
+    local sliderLabel = Instance.new("TextLabel")
+    sliderLabel.Name = "Label"
+    sliderLabel.Size = UDim2.new(1, 0, 0, 20)
+    sliderLabel.Position = UDim2.new(0, 0, 0, 0)
+    sliderLabel.BackgroundTransparency = 1
+    sliderLabel.Text = text..": "..default
+    sliderLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    sliderLabel.TextSize = 14
+    sliderLabel.Font = Enum.Font.Gotham
+    sliderLabel.TextXAlignment = Enum.TextXAlignment.Left
+    sliderLabel.Parent = sliderFrame
+    
+    local sliderTrack = Instance.new("Frame")
+    sliderTrack.Name = "Track"
+    sliderTrack.Size = UDim2.new(1, 0, 0, 5)
+    sliderTrack.Position = UDim2.new(0, 0, 0, 25)
+    sliderTrack.BackgroundColor3 = Color3.fromRGB(70, 70, 75)
+    sliderTrack.BorderSizePixel = 0
+    sliderTrack.Parent = sliderFrame
+    
+    local sliderTrackCorner = Instance.new("UICorner")
+    sliderTrackCorner.CornerRadius = UDim.new(1, 0)
+    sliderTrackCorner.Parent = sliderTrack
+    
+    local sliderFill = Instance.new("Frame")
+    sliderFill.Name = "Fill"
+    sliderFill.Size = UDim2.new((default - min) / (max - min), 0, 1, 0)
+    sliderFill.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
+    sliderFill.BorderSizePixel = 0
+    sliderFill.Parent = sliderTrack
+    
+    local sliderFillCorner = Instance.new("UICorner")
+    sliderFillCorner.CornerRadius = UDim.new(1, 0)
+    sliderFillCorner.Parent = sliderFill
+    
+    local sliderButton = Instance.new("TextButton")
+    sliderButton.Name = "Button"
+    sliderButton.Size = UDim2.new(0, 15, 0, 15)
+    sliderButton.Position = UDim2.new(sliderFill.Size.X.Scale, -7, 0.5, -7)
+    sliderButton.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    sliderButton.BorderSizePixel = 0
+    sliderButton.Text = ""
+    sliderButton.Parent = sliderTrack
+    
+    local sliderButtonCorner = Instance.new("UICorner")
+    sliderButtonCorner.CornerRadius = UDim.new(1, 0)
+    sliderButtonCorner.Parent = sliderButton
+    
+    local sliding = false
+    local currentValue = default
+    
+    local function updateSlider(input)
+        local sliderPosition = UDim2.new(
+            math.clamp((input.Position.X - sliderTrack.AbsolutePosition.X) / sliderTrack.AbsoluteSize.X, 0, 1),
+            0,
+            0.5,
+            0
+        )
+        sliderFill.Size = UDim2.new(sliderPosition.X.Scale, 0, 1, 0)
+        sliderButton.Position = UDim2.new(sliderPosition.X.Scale, -7, 0.5, -7)
+        
+        local newValue = math.floor(min + (max - min) * sliderPosition.X.Scale)
+        if newValue ~= currentValue then
+            currentValue = newValue
+            sliderLabel.Text = text..": "..currentValue
+            pcall(callback, currentValue)
+        end
+    end
+    
+    sliderButton.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            sliding = true
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    sliding = false
+                end
+            end)
+        end
+    end)
+    
+    sliderButton.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement and sliding then
+            updateSlider(input)
+        end
+    end)
+    
+    sliderTrack.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            updateSlider(input)
+            sliding = true
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    sliding = false
+                end
+            end)
+        end
+    end)
+    
+    UserInputService.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement and sliding then
+            updateSlider(input)
+        end
+    end)
+    
+    return {
+        Set = function(self, value)
+            local clamped = math.clamp(value, min, max)
+            local scale = (clamped - min) / (max - min)
+            sliderFill.Size = UDim2.new(scale, 0, 1, 0)
+            sliderButton.Position = UDim2.new(scale, -7, 0.5, -7)
+            currentValue = clamped
+            sliderLabel.Text = text..": "..currentValue
+            pcall(callback, currentValue)
+        end,
+        Get = function(self)
+            return currentValue
+        end
+    }
+end
+
+function Sugar:TextBox(text, placeholder, callback)
+    local textBoxFrame = Instance.new("Frame")
+    textBoxFrame.Name = "TextBox_"..text
+    textBoxFrame.Size = UDim2.new(1, 0, 0, 50)
+    textBoxFrame.BackgroundTransparency = 1
+    textBoxFrame.Parent = contentFrame
+    
+    local textBoxLabel = Instance.new("TextLabel")
+    textBoxLabel.Name = "Label"
+    textBoxLabel.Size = UDim2.new(1, 0, 0, 20)
+    textBoxLabel.Position = UDim2.new(0, 0, 0, 0)
+    textBoxLabel.BackgroundTransparency = 1
+    textBoxLabel.Text = text
+    textBoxLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    textBoxLabel.TextSize = 14
+    textBoxLabel.Font = Enum.Font.Gotham
+    textBoxLabel.TextXAlignment = Enum.TextXAlignment.Left
+    textBoxLabel.Parent = textBoxFrame
+    
+    local textBox = Instance.new("TextBox")
+    textBox.Name = "TextBox"
+    textBox.Size = UDim2.new(1, 0, 0, 25)
+    textBox.Position = UDim2.new(0, 0, 0, 25)
+    textBox.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
+    textBox.BorderSizePixel = 0
+    textBox.Text = ""
+    textBox.PlaceholderText = placeholder or ""
+    textBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+    textBox.TextSize = 14
+    textBox.Font = Enum.Font.Gotham
+    textBox.ClearTextOnFocus = false
+    textBox.Parent = textBoxFrame
+    
+    local textBoxCorner = Instance.new("UICorner")
+    textBoxCorner.CornerRadius = UDim.new(0, 4)
+    textBoxCorner.Parent = textBox
+    
+    textBox.FocusLost:Connect(function(enterPressed)
+        if enterPressed then
+            pcall(callback, textBox.Text)
+        end
+    end)
+    
+    return {
+        Set = function(self, value)
+            textBox.Text = tostring(value)
+        end,
+        Get = function(self)
+            return textBox.Text
+        end
+    }
+end
+
+function Sugar:Label(text)
+    local label = Instance.new("TextLabel")
+    label.Name = "Label_"..text
+    label.Size = UDim2.new(1, 0, 0, 20)
+    label.BackgroundTransparency = 1
+    label.Text = text
+    label.TextColor3 = Color3.fromRGB(255, 255, 255)
+    label.TextSize = 14
+    label.Font = Enum.Font.Gotham
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.Parent = contentFrame
+    
+    return label
+end
+
+function Sugar:Dropdown(text, options, callback)
+    local dropdownFrame = Instance.new("Frame")
+    dropdownFrame.Name = "Dropdown_"..text
+    dropdownFrame.Size = UDim2.new(1, 0, 0, 30)
+    dropdownFrame.BackgroundTransparency = 1
+    dropdownFrame.Parent = contentFrame
+    
+    local dropdownLabel = Instance.new("TextLabel")
+    dropdownLabel.Name = "Label"
+    dropdownLabel.Size = UDim2.new(0.7, 0, 1, 0)
+    dropdownLabel.Position = UDim2.new(0, 0, 0, 0)
+    dropdownLabel.BackgroundTransparency = 1
+    dropdownLabel.Text = text
+    dropdownLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    dropdownLabel.TextSize = 14
+    dropdownLabel.Font = Enum.Font.Gotham
+    dropdownLabel.TextXAlignment = Enum.TextXAlignment.Left
+    dropdownLabel.Parent = dropdownFrame
+    
+    local dropdownButton = Instance.new("TextButton")
+    dropdownButton.Name = "Button"
+    dropdownButton.Size = UDim2.new(0, 100, 0, 25)
+    dropdownButton.Position = UDim2.new(1, -100, 0.5, -12.5)
+    dropdownButton.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
+    dropdownButton.BorderSizePixel = 0
+    dropdownButton.Text = "Select"
+    dropdownButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    dropdownButton.TextSize = 14
+    dropdownButton.Font = Enum.Font.Gotham
+    dropdownButton.Parent = dropdownFrame
+    
+    local dropdownButtonCorner = Instance.new("UICorner")
+    dropdownButtonCorner.CornerRadius = UDim.new(0, 4)
+    dropdownButtonCorner.Parent = dropdownButton
+    
+    local dropdownList = Instance.new("ScrollingFrame")
+    dropdownList.Name = "List"
+    dropdownList.Size = UDim2.new(1, 0, 0, 0)
+    dropdownList.Position = UDim2.new(0, 0, 1, 5)
+    dropdownList.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
+    dropdownList.BorderSizePixel = 0
+    dropdownList.ScrollBarThickness = 5
+    dropdownList.Visible = false
+    dropdownList.Parent = dropdownFrame
+    
+    local dropdownListLayout = Instance.new("UIListLayout")
+    dropdownListLayout.Name = "ListLayout"
+    dropdownListLayout.Padding = UDim.new(0, 2)
+    dropdownListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    dropdownListLayout.Parent = dropdownList
+    
+    local dropdownListCorner = Instance.new("UICorner")
+    dropdownListCorner.CornerRadius = UDim.new(0, 4)
+    dropdownListCorner.Parent = dropdownList
+    
+    local isOpen = false
+    local selectedOption = nil
+    
+    local function toggleDropdown()
+        isOpen = not isOpen
+        dropdownList.Visible = isOpen
+        
+        if isOpen then
+            local tweenInfo = TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut)
+            local tween = TweenService:Create(
+                dropdownList,
+                tweenInfo,
+                {Size = UDim2.new(1, 0, 0, math.min(#options * 25 + (#options - 1) * 2, 150))}
+            )
+            tween:Play()
+        else
+            dropdownList.Size = UDim2.new(1, 0, 0, 0)
+        end
+    end
+    
+    dropdownButton.MouseButton1Click:Connect(toggleDropdown)
+    
+    for i, option in ipairs(options) do
+        local optionButton = Instance.new("TextButton")
+        optionButton.Name = "Option_"..option
+        optionButton.Size = UDim2.new(1, -10, 0, 25)
+        optionButton.Position = UDim2.new(0, 5, 0, 0)
+        optionButton.BackgroundColor3 = Color3.fromRGB(50, 50, 55)
+        optionButton.BorderSizePixel = 0
+        optionButton.Text = option
+        optionButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+        optionButton.TextSize = 14
+        optionButton.Font = Enum.Font.Gotham
+        optionButton.LayoutOrder = i
+        optionButton.Parent = dropdownList
+        
+        local optionButtonCorner = Instance.new("UICorner")
+        optionButtonCorner.CornerRadius = UDim.new(0, 4)
+        optionButtonCorner.Parent = optionButton
+        
+        optionButton.MouseButton1Click:Connect(function()
+            selectedOption = option
+            dropdownButton.Text = option
+            toggleDropdown()
+            pcall(callback, option)
+        end)
+    end
+    
+    return {
+        Set = function(self, value)
+            if table.find(options, value) then
+                selectedOption = value
+                dropdownButton.Text = value
+            end
+        end,
+        Get = function(self)
+            return selectedOption
+        end
+    }
+end
+
+-- Update content frame size when elements are added
+contentLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+    local contentSize = contentLayout.AbsoluteContentSize
+    targetSize = UDim2.new(0, 300, 0, contentSize.Y + 45)
+    if isOpen then
+        mainFrame.Size = targetSize
+    end
+end)
+
+return Sugar
